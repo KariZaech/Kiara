@@ -10,6 +10,8 @@
     emptyMap: $("#empty-map"),
     rows: $("#trail-rows"),
     emptyTrails: $("#empty-trails"),
+    pointRows: $("#point-rows"),
+    emptyPoints: $("#empty-points"),
     datalist: $("#point-options"),
     versionList: $("#version-list"),
     routePanel: $("#route-panel"),
@@ -42,16 +44,24 @@
       throw new Error("The file must contain nodes and edges, or nodes and relationships.");
     }
     const nodes = value.nodes.map((node, index) => {
-      const name = String(node.name ?? node.caption ?? node.id ?? "").trim();
+      const name = String(node.fullName ?? node.name ?? node.properties?.fullName ?? node.caption ?? node.id ?? "").trim();
       if (!name) throw new Error(`Point ${index + 1} needs a name.`);
       const position = node.position || {};
       return {
         id: String(node.id || newId("point")),
         name,
+        code: String(node.code ?? node.properties?.code ?? (isNodeCode(node.caption) ? node.caption : "")).trim().toUpperCase(),
         x: Number.isFinite(Number(node.x ?? position.x)) ? Number(node.x ?? position.x) : null,
         y: Number.isFinite(Number(node.y ?? position.y)) ? Number(node.y ?? position.y) : null
       };
     });
+    const usedCodes = new Set(nodes.filter((node) => node.code).map((node) => node.code));
+    for (const node of nodes) {
+      if (!node.code) {
+        node.code = generateNodeCode(node.name, usedCodes);
+        usedCodes.add(node.code);
+      }
+    }
     const nodeById = new Map(nodes.map((node) => [node.id, node]));
     const nodesByName = new Map(nodes.map((node) => [slug(node.name), node]));
 
@@ -87,14 +97,32 @@
     return number;
   }
 
+  function isNodeCode(value) {
+    return /^[A-Z0-9]{3}$/i.test(String(value || ""));
+  }
+
+  function generateNodeCode(name, usedCodes) {
+    const base = (name.replace(/[^a-z0-9]/gi, "").toUpperCase() + "XXX").slice(0, 3);
+    if (!usedCodes.has(base)) return base;
+    for (let index = 0; index < 36 ** 3; index += 1) {
+      const candidate = index.toString(36).toUpperCase().padStart(3, "0");
+      if (!usedCodes.has(candidate)) return candidate;
+    }
+    throw new Error("No unique 3-character point codes are available.");
+  }
+
   function validateNodes(nodes) {
     const ids = new Set();
     const names = new Set();
+    const codes = new Set();
     for (const node of nodes) {
       if (ids.has(node.id)) throw new Error(`Point ID "${node.id}" appears more than once.`);
       if (names.has(slug(node.name))) throw new Error(`Point name "${node.name}" appears more than once.`);
+      if (!isNodeCode(node.code)) throw new Error(`Point code "${node.code}" must be exactly 3 letters or numbers.`);
+      if (codes.has(node.code)) throw new Error(`Point code "${node.code}" appears more than once.`);
       ids.add(node.id);
       names.add(slug(node.name));
+      codes.add(node.code);
     }
   }
 
@@ -109,7 +137,8 @@
   function toSampleNetwork(data) {
     const nodes = data.nodes.map((node) => ({
       id: String(node.id),
-      name: String(node.caption || node.id),
+      code: String(node.code || node.caption || node.id),
+      name: String(node.fullName || node.properties?.fullName || node.caption || node.id),
       x: Number(node.position?.x),
       y: Number(node.position?.y)
     }));
@@ -307,6 +336,14 @@
     elements.datalist.innerHTML = network.nodes
       .map((node) => `<option value="${escapeHtml(node.name)}"></option>`)
       .join("");
+    $("#point-table-count").textContent = network.nodes.length;
+    elements.emptyPoints.hidden = network.nodes.length > 0;
+    elements.pointRows.innerHTML = network.nodes.map((node) => `
+      <tr data-id="${escapeHtml(node.id)}">
+        <td><input class="point-code-input" type="text" data-field="code" value="${escapeHtml(node.code)}" maxlength="3" pattern="[A-Za-z0-9]{3}" aria-label="Three-character code for ${escapeHtml(node.name)}"></td>
+        <td><input class="point-name-input" type="text" data-field="name" value="${escapeHtml(node.name)}" maxlength="60" aria-label="Full name for ${escapeHtml(node.code)}"></td>
+      </tr>
+    `).join("");
   }
 
   function renderTable() {
@@ -400,10 +437,11 @@
     const nodeMarkup = network.nodes.map((node) => {
       const point = positions.get(node.id);
       const startClass = routeStart === node.id ? " start-node" : "";
-      return `<g class="map-node" data-node-id="${escapeHtml(node.id)}" tabindex="0" role="button" aria-label="Drag ${escapeHtml(node.name)} point">
+      return `<g class="map-node" data-node-id="${escapeHtml(node.id)}" tabindex="0" role="button" aria-label="Drag ${escapeHtml(node.code)} — ${escapeHtml(node.name)}">
+        <title>${escapeHtml(node.name)}</title>
         <circle class="node-hit-area" cx="${point.x}" cy="${point.y}" r="14"></circle>
         <circle class="node-circle${startClass}" cx="${point.x}" cy="${point.y}" r="6"></circle>
-        <text class="node-text" x="${point.x}" y="${point.y + 10}">${escapeHtml(node.name)}</text></g>`;
+        <text class="node-text" x="${point.x}" y="${point.y + 10}">${escapeHtml(node.code)}</text></g>`;
     }).join("");
     elements.map.innerHTML = `<defs><marker id="out-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#9aa99f"></path></marker></defs><g>${edgeMarkup}${nodeMarkup}</g>`;
   }
@@ -529,9 +567,11 @@
     const point = {
       id: newId("point"),
       name: cleaned,
+      code: "",
       x: position?.x ?? 0,
       y: position?.y ?? 0
     };
+    point.code = generateNodeCode(cleaned, new Set(network.nodes.map((node) => node.code)));
     network.nodes.push(point);
     return point;
   }
@@ -645,6 +685,36 @@
     routeResult = null;
     persistDraft();
     render();
+  });
+
+  elements.pointRows.addEventListener("change", (event) => {
+    const field = event.target.dataset.field;
+    const row = event.target.closest("tr");
+    if (!field || !row) return;
+    const node = network.nodes.find((point) => point.id === row.dataset.id);
+    if (!node) return;
+    const value = String(event.target.value).trim();
+    try {
+      if (field === "code") {
+        const code = value.toUpperCase();
+        if (!isNodeCode(code)) throw new Error("Point codes must be exactly 3 letters or numbers.");
+        if (network.nodes.some((point) => point.id !== node.id && point.code === code)) {
+          throw new Error(`The code "${code}" is already assigned to another point.`);
+        }
+        node.code = code;
+      } else if (field === "name") {
+        if (!value) throw new Error("A point needs a full name.");
+        if (network.nodes.some((point) => point.id !== node.id && slug(point.name) === slug(value))) {
+          throw new Error(`The name "${value}" is already assigned to another point.`);
+        }
+        node.name = value;
+      }
+      persistDraft();
+      render();
+    } catch (error) {
+      render();
+      showToast(error.message, true);
+    }
   });
 
   $("#find-route").addEventListener("click", () => {

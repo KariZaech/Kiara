@@ -144,6 +144,16 @@ h1 { margin-bottom: 7px; color: var(--ink); font-size: clamp(25px, 3vw, 34px); f
 .danger-text { color: #ad7970; }
 .danger-text:hover { color: #a74b43; }
 .trail-table-wrap { max-height: 390px; overflow: auto; border-top: 1px solid #edf0eb; }
+.point-table-wrap { max-height: 235px; overflow: auto; border-top: 1px solid #edf0eb; }
+.point-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.point-table th { position: sticky; top: 0; z-index: 1; padding: 8px 7px; color: #9aa49e; background: #fbfcfa; text-align: left; font-size: 8px; font-weight: 600; }
+.point-table th:first-child, .point-table td:first-child { width: 78px; padding-left: 14px; }
+.point-table td { padding: 5px 6px; border-top: 1px solid #f1f3ef; }
+.point-table input { width: 100%; padding: 6px 7px; border: 1px solid transparent; border-radius: 5px; outline: none; color: #4d6257; background: transparent; font-size: 10px; }
+.point-table input:hover, .point-table input:focus { border-color: #e1e9e0; background: #fff; }
+.point-table input:focus { box-shadow: 0 0 0 2px rgb(87 148 111 / 11%); }
+.point-table .point-code-input { font-weight: 700; letter-spacing: .5px; text-transform: uppercase; }
+.empty-points { padding: 14px; color: #a0aaa3; text-align: center; font-size: 10px; }
 .trail-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 .trail-table th { position: sticky; top: 0; z-index: 1; padding: 8px 5px; color: #9aa49e; background: #fbfcfa; text-align: left; font-size: 8px; font-weight: 600; }
 .trail-table th:first-child, .trail-table td:first-child { padding-left: 14px; }

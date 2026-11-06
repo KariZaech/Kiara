@@ -15,6 +15,7 @@ Then open [http://localhost:8000](http://localhost:8000). The supplied `graphdat
 ## Use it
 
 - Add trails by entering their start and end point names. A new point is created automatically when its name is new.
+- Every point has a unique three-character alphanumeric code and a full name. The map shows the code and displays the full name on hover; edit both in the Trail points table.
 - Set independent ride times for each direction. Mark access roads as optional to make them available as connectors without requiring them to be covered.
 - Drag map points to reshape the network. Outbound time is tied to line length (scaled to fit the map), so moving a point updates the outbound times of its connected trails; inbound times remain independent. You can also edit an outbound time in the trail table to resize its line.
 - Edit or remove trails in the table, and save named network versions in this browser.

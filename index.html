@@ -47,7 +47,7 @@
             <div class="panel-heading">
               <div>
                 <h2>Trail network</h2>
-                <p>Drag points to reshape the network. Line length shows time going (to scale).</p>
+                <p>Drag points to reshape the network. Line length shows time going; hover a code for its full name.</p>
               </div>
               <button class="text-button" id="reset-route" type="button" hidden>Clear route</button>
             </div>
@@ -95,9 +95,22 @@
             <div class="version-list" id="version-list"></div>
           </section>
 
+          <section class="panel points-panel">
+            <div class="panel-heading compact-heading">
+              <div><h2>Trail points <span class="heading-count" id="point-table-count">0</span></h2><p>Edit each point’s code and full name.</p></div>
+            </div>
+            <div class="point-table-wrap">
+              <table class="point-table">
+                <thead><tr><th>Code</th><th>Full name</th></tr></thead>
+                <tbody id="point-rows"></tbody>
+              </table>
+              <div class="empty-points" id="empty-points">Points are created when you add a trail.</div>
+            </div>
+          </section>
+
           <section class="panel add-panel">
             <div class="panel-heading compact-heading">
-              <div><h2>Add a trail</h2><p>New point names are added automatically.</p></div>
+              <div><h2>Add a trail</h2><p>New point names and 3-character codes are created automatically.</p></div>
             </div>
             <form id="add-trail-form" class="add-form">
               <div class="endpoint-row">
