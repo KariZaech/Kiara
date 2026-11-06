@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f6f7f2">
+    <title>Trailwise — route planner</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="Trailwise home">
+        <span class="brand-mark" aria-hidden="true">↗</span>
+        <span>trailwise<span class="brand-period">.</span></span>
+      </a>
+      <div class="topbar-tools">
+        <span class="saved-indicator"><span class="status-dot"></span><span id="save-status">Draft saved locally</span></span>
+        <button class="button button-quiet" id="import-button" type="button">Import JSON</button>
+        <button class="button button-quiet" id="export-button" type="button">Export</button>
+        <input id="import-file" type="file" accept=".json,application/json" hidden>
+      </div>
+    </header>
+
+    <main class="app-shell">
+      <section class="page-heading">
+        <div>
+          <p class="eyebrow">RIDE PLANNER <span>·</span> ROUTE INSPECTION</p>
+          <h1>Make every mile count.</h1>
+          <p class="intro">Map your trail network. We’ll find a fast ride that covers every trail you need.</p>
+        </div>
+        <button class="button button-primary" id="find-route" type="button">
+          <span aria-hidden="true">✳</span> Find fastest route
+        </button>
+      </section>
+
+      <section class="summary-strip" aria-label="Network summary">
+        <div class="summary-item"><span class="summary-value" id="trail-count">0</span><span>trails to ride</span></div>
+        <div class="summary-divider"></div>
+        <div class="summary-item"><span class="summary-value" id="point-count">0</span><span>trail points</span></div>
+        <div class="summary-divider"></div>
+        <div class="summary-item"><span class="summary-value" id="optional-count">0</span><span>optional connectors</span></div>
+      </section>
+
+      <div class="workspace">
+        <section class="main-column">
+          <section class="panel map-panel">
+            <div class="panel-heading">
+              <div>
+                <h2>Trail network</h2>
+                <p>Drag points to reshape the network. Line length shows time going (to scale).</p>
+              </div>
+              <button class="text-button" id="reset-route" type="button" hidden>Clear route</button>
+            </div>
+            <div class="map-wrap" id="map-wrap">
+              <svg id="network-map" role="img" aria-label="Trail network map"></svg>
+              <div class="empty-map" id="empty-map" hidden>
+                <span class="empty-icon">⌁</span>
+                <strong>Your map starts here</strong>
+                <span>Add a trail below or load your graph data.</span>
+              </div>
+            </div>
+            <div class="map-legend">
+              <span><i class="legend-line"></i> Trail · length = time out</span>
+              <span><i class="legend-line legend-route"></i> Planned route</span>
+              <span><i class="legend-dot"></i> Trail point</span>
+            </div>
+          </section>
+
+          <section class="panel route-panel" id="route-panel" hidden>
+            <div class="panel-heading route-heading">
+              <div>
+                <p class="eyebrow">YOUR RIDE</p>
+                <h2 id="route-title">Fastest route</h2>
+                <p id="route-method" class="route-method"></p>
+              </div>
+              <div class="duration-total"><strong id="route-duration">—</strong><span>total ride time</span></div>
+            </div>
+            <div class="route-stats" id="route-stats"></div>
+            <details class="route-details">
+              <summary>Show ride sequence <span id="route-step-count"></span></summary>
+              <ol id="route-steps"></ol>
+            </details>
+          </section>
+        </section>
+
+        <aside class="side-column">
+          <section class="panel version-panel">
+            <div class="panel-heading compact-heading">
+              <div><h2>Trail networks</h2><p>Save and switch between versions.</p></div>
+            </div>
+            <div class="version-controls">
+              <input id="version-name" type="text" maxlength="60" placeholder="Name this version" aria-label="Version name">
+              <button class="button button-small button-dark" id="save-version" type="button">Save version</button>
+            </div>
+            <div class="version-list" id="version-list"></div>
+          </section>
+
+          <section class="panel add-panel">
+            <div class="panel-heading compact-heading">
+              <div><h2>Add a trail</h2><p>New point names are added automatically.</p></div>
+            </div>
+            <form id="add-trail-form" class="add-form">
+              <div class="endpoint-row">
+                <label>From<input name="from" type="text" list="point-options" placeholder="e.g. North gate" required maxlength="48"></label>
+                <span class="endpoint-arrow" aria-hidden="true">→</span>
+                <label>To<input name="to" type="text" list="point-options" placeholder="e.g. Lookout" required maxlength="48"></label>
+              </div>
+              <datalist id="point-options"></datalist>
+              <div class="time-row">
+                <label>Time going<input name="forward" type="number" min="0.1" max="100000" step="0.1" value="10" required><span>min</span></label>
+                <label>Time returning<input name="reverse" type="number" min="0.1" max="100000" step="0.1" value="10" required><span>min</span></label>
+              </div>
+              <label class="checkbox-row"><input name="required" type="checkbox" checked><span class="custom-checkbox"></span><span>Must ride this trail</span><span class="label-note">Optional access road</span></label>
+              <button class="button button-secondary full-width" type="submit"><span aria-hidden="true">＋</span> Add trail</button>
+            </form>
+          </section>
+
+          <section class="panel trails-panel">
+            <div class="panel-heading compact-heading trail-list-heading">
+              <div><h2>All trails <span class="heading-count" id="table-count">0</span></h2><p>Edit times and requirements inline.</p></div>
+              <button class="text-button danger-text" id="clear-network" type="button">Clear all</button>
+            </div>
+            <div class="trail-table-wrap">
+              <table class="trail-table">
+                <thead><tr><th>Trail</th><th>Min · out / back</th><th>Ride</th><th></th></tr></thead>
+                <tbody id="trail-rows"></tbody>
+              </table>
+              <div class="empty-trails" id="empty-trails">No trails yet. Add one above.</div>
+            </div>
+          </section>
+
+          <div class="data-note">
+            <span class="info-icon" aria-hidden="true">i</span>
+            <p>Times are minutes. Each trail can be ridden in either direction and repeated. Access roads can connect trails without needing to be covered.</p>
+          </div>
+        </aside>
+      </div>
+      <footer class="footer-note">Your networks and saved versions stay in this browser.</footer>
+    </main>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="solver.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
